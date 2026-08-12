@@ -23,7 +23,7 @@
   <style>
 
     :root {
-      --bg: #255c69;
+      --bg: #77b395;
       --panel: rgba(255, 255, 255, 0.82);
       --text: #1b1b1b;
       --muted: #68645d;
@@ -42,7 +42,7 @@
       height: 100%;
       overflow: hidden;
 
-      background: rgb(37, 92, 105);
+      background: rgb(119, 179, 149);
 
       font-family:
         Arial,
@@ -218,6 +218,23 @@
       background: white;
     }
 
+    #credits {
+      position: fixed;
+      left: 28px;
+      bottom: 24px;
+      z-index: 20;
+      color: var(--text);
+      font-size: 11px;
+      line-height: 1.55;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    #credits span {
+      display: block;
+      color: var(--muted);
+    }
+
   </style>
 </head>
 
@@ -238,6 +255,11 @@
       instalação interativa · modelo 3D
     </p>
 
+  </div>
+
+  <div id="credits">
+    <span>Desenvolvimento</span>
+    Caio Rodrigues · FabLab Acousmonium
   </div>
 
 
