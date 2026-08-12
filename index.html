@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Corpo Sonoro — Instalação 3D</title>
+
+  <!-- =====================================================
+       IMPORTMAP
+       Resolve o problema do GLTFLoader procurando "three"
+       ===================================================== -->
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+
+    :root {
+      --bg: #255c69;
+      --panel: rgba(255, 255, 255, 0.82);
+      --text: #1b1b1b;
+      --muted: #68645d;
+      --accent: #9b7134;
+      --border: rgba(0,0,0,0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+
+      background: rgb(37, 92, 105);
+
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* =====================================================
+       PAINEL SUPERIOR
+       ===================================================== */
+
+    #title {
+      position: fixed;
+
+      top: 24px;
+      left: 28px;
+
+      z-index: 20;
+
+      pointer-events: none;
+    }
+
+    #title h1 {
+      margin: 0;
+
+      font-size: clamp(28px, 4vw, 52px);
+
+      font-weight: 300;
+
+      letter-spacing: 0.08em;
+
+      color: #151515;
+    }
+
+    #title h1 span {
+      color: var(--accent);
+    }
+
+    #title p {
+      margin: 7px 0 0;
+
+      font-size: 12px;
+
+      letter-spacing: 0.28em;
+
+      text-transform: uppercase;
+
+      color: var(--muted);
+    }
+
+    /* =====================================================
+       STATUS
+       ===================================================== */
+
+    #status {
+      position: fixed;
+
+      left: 50%;
+      bottom: 24px;
+
+      transform: translateX(-50%);
+
+      padding: 11px 18px;
+
+      border-radius: 999px;
+
+      background: var(--panel);
+
+      color: var(--text);
+
+      border: 1px solid var(--border);
+
+      backdrop-filter: blur(12px);
+
+      font-size: 13px;
+
+      letter-spacing: 0.04em;
+
+      z-index: 30;
+
+      box-shadow:
+        0 8px 30px rgba(0,0,0,0.08);
+
+      transition:
+        opacity 0.4s ease,
+        transform 0.4s ease;
+    }
+
+    #status.hidden {
+      opacity: 0;
+
+      transform:
+        translateX(-50%)
+        translateY(10px);
+
+      pointer-events: none;
+    }
+
+    #status.error {
+      background: rgba(120, 30, 30, 0.92);
+      color: white;
+    }
+
+    /* =====================================================
+       CONTROLES
+       ===================================================== */
+
+    #controls {
+      position: fixed;
+
+      right: 24px;
+      bottom: 24px;
+
+      z-index: 20;
+
+      padding: 10px 14px;
+
+      border-radius: 10px;
+
+      background: var(--panel);
+
+      border: 1px solid var(--border);
+
+      backdrop-filter: blur(12px);
+
+      color: var(--muted);
+
+      font-size: 11px;
+
+      letter-spacing: 0.05em;
+    }
+
+    /* =====================================================
+       BOTÃO
+       ===================================================== */
+
+    #reset {
+      position: fixed;
+
+      right: 24px;
+      top: 24px;
+
+      z-index: 30;
+
+      border: 1px solid var(--border);
+
+      background: rgba(255,255,255,0.78);
+
+      color: #222;
+
+      padding: 9px 14px;
+
+      border-radius: 8px;
+
+      cursor: pointer;
+
+      font-size: 11px;
+
+      letter-spacing: 0.08em;
+
+      text-transform: uppercase;
+
+      backdrop-filter: blur(10px);
+    }
+
+    #reset:hover {
+      background: white;
+    }
+
+  </style>
+</head>
+
+
+<body>
+
+  <!-- =====================================================
+       TÍTULO
+       ===================================================== -->
+
+  <div id="title">
+
+    <h1>
+      CORPO <span>SONORO</span>
+    </h1>
+
+    <p>
+      instalação interativa · modelo 3D
+    </p>
+
+  </div>
+
+
+  <!-- =====================================================
+       STATUS
+       ===================================================== -->
+
+  <div id="status">
+    Inicializando instalação...
+  </div>
+
+
+  <!-- =====================================================
+       CONTROLES
+       ===================================================== -->
+
+  <div id="controls">
+    ARRASTE · ROTACIONAR &nbsp;&nbsp; | &nbsp;&nbsp;
+    SCROLL · ZOOM
+  </div>
+
+
+  <!-- =====================================================
+       RESET
+       ===================================================== -->
+
+  <button id="reset">
+    Centralizar
+  </button>
+
+
+  <!-- =====================================================
+       THREE.JS
+       ===================================================== -->
+
+  <script type="module">
+
+    import * as THREE from 'three';
+
+    import {
+      GLTFLoader
+    } from 'three/addons/loaders/GLTFLoader.js';
+
+    import {
+      OrbitControls
+    } from 'three/addons/controls/OrbitControls.js';
+
+
+    // =====================================================
+    // ELEMENTOS DA INTERFACE
+    // =====================================================
+
+    const statusEl =
+      document.getElementById('status');
+
+    const resetButton =
+      document.getElementById('reset');
+
+
+    // =====================================================
+    // VERIFICAÇÃO DO SERVIDOR
+    // =====================================================
+
+    if (location.protocol === 'file:') {
+
+      statusEl.textContent =
+        '⚠ Abra esta página através de um servidor local.';
+
+      statusEl.classList.add('error');
+
+      throw new Error(
+        'A página precisa ser executada através de HTTP/HTTPS.'
+      );
+
+    }
+
+
+    // =====================================================
+    // CENA
+    // =====================================================
+
+    const scene =
+      new THREE.Scene();
+
+
+    // Fundo transparente para revelar o degradê de pôr do sol do CSS.
+    scene.background = null;
+
+
+    // =====================================================
+    // CÂMERA
+    // =====================================================
+
+    const camera =
+      new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth /
+        window.innerHeight,
+
+        0.01,
+        1000
+      );
+
+
+    camera.position.set(
+      2.8,
+      1.9,
+      4.2
+    );
+
+
+    // =====================================================
+    // RENDERER
+    // =====================================================
+
+    const renderer =
+      new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true
+      });
+
+
+    renderer.setPixelRatio(
+      Math.min(
+        window.devicePixelRatio,
+        2
+      )
+    );
+
+
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
+    );
+
+
+    renderer.outputColorSpace =
+      THREE.SRGBColorSpace;
+
+
+    renderer.shadowMap.enabled = true;
+
+
+    renderer.shadowMap.type =
+      THREE.PCFSoftShadowMap;
+
+
+    document.body.appendChild(
+      renderer.domElement
+    );
+
+
+    // =====================================================
+    // CONTROLES
+    // =====================================================
+
+    const controls =
+      new OrbitControls(
+        camera,
+        renderer.domElement
+      );
+
+
+    controls.enableDamping = true;
+
+    controls.dampingFactor = 0.06;
+
+    controls.enablePan = false;
+
+    controls.minDistance = 0.5;
+
+    controls.maxDistance = 15;
+
+    controls.target.set(
+      0,
+      1,
+      0
+    );
+
+
+    // =====================================================
+    // ILUMINAÇÃO
+    // =====================================================
+
+    const hemisphere =
+      new THREE.HemisphereLight(
+        0xffffff,
+        0x7d756a,
+        2.2
+      );
+
+    scene.add(hemisphere);
+
+
+    // Luz principal
+    const keyLight =
+      new THREE.DirectionalLight(
+        0xffffff,
+        3.0
+      );
+
+
+    keyLight.position.set(
+      4,
+      6,
+      5
+    );
+
+
+    keyLight.castShadow = true;
+
+
+    keyLight.shadow.mapSize.width =
+      2048;
+
+    keyLight.shadow.mapSize.height =
+      2048;
+
+
+    scene.add(keyLight);
+
+
+    // Luz lateral
+    const fillLight =
+      new THREE.DirectionalLight(
+        0xffe8c7,
+        1.2
+      );
+
+
+    fillLight.position.set(
+      -4,
+      3,
+      2
+    );
+
+
+    scene.add(fillLight);
+
+
+    // Luz traseira
+    const rimLight =
+      new THREE.DirectionalLight(
+        0xffffff,
+        1.4
+      );
+
+
+    rimLight.position.set(
+      0,
+      4,
+      -5
+    );
+
+
+    scene.add(rimLight);
+
+
+    // =====================================================
+    // CHÃO
+    // =====================================================
+
+    const floorGeometry =
+      new THREE.CircleGeometry(
+        8,
+        96
+      );
+
+
+    const floorMaterial =
+      new THREE.MeshStandardMaterial({
+
+        color: 0xd3cec4,
+
+        roughness: 0.88,
+
+        metalness: 0.02
+
+      });
+
+
+    const floor =
+      new THREE.Mesh(
+        floorGeometry,
+        floorMaterial
+      );
+
+
+    floor.rotation.x =
+      -Math.PI / 2;
+
+
+    floor.position.y =
+      -0.02;
+
+
+    floor.receiveShadow = true;
+
+
+    // O chão foi removido da cena.
+
+
+    // =====================================================
+    // CÍRCULO DE BASE
+    // =====================================================
+
+    const ringGeometry =
+      new THREE.RingGeometry(
+        1.05,
+        1.08,
+        96
+      );
+
+
+    const ringMaterial =
+      new THREE.MeshBasicMaterial({
+
+        color: 0x9b7134,
+
+        transparent: true,
+
+        opacity: 0.35,
+
+        side: THREE.DoubleSide
+
+      });
+
+
+    const ring =
+      new THREE.Mesh(
+        ringGeometry,
+        ringMaterial
+      );
+
+
+    ring.rotation.x =
+      -Math.PI / 2;
+
+
+    ring.position.y =
+      0.005;
+
+
+    // O círculo de base foi removido da cena.
+
+
+    // =====================================================
+    // GRID SUTIL
+    // =====================================================
+
+    const grid =
+      new THREE.GridHelper(
+        10,
+        20,
+        0xb7b1a7,
+        0xd0cbc2
+      );
+
+
+    grid.position.y =
+      0.006;
+
+
+    grid.material.transparent =
+      true;
+
+
+    grid.material.opacity =
+      0.25;
+
+
+    // A grade de referência foi removida da cena.
+
+
+    // =====================================================
+    // GLTF LOADER
+    // =====================================================
+
+    const loader =
+      new GLTFLoader();
+
+
+    let model = null;
+
+
+    // =====================================================
+    // FUNÇÃO DE ENQUADRAMENTO
+    // =====================================================
+
+    function frameModel(object) {
+
+      const box =
+        new THREE.Box3()
+          .setFromObject(object);
+
+
+      const size =
+        box.getSize(
+          new THREE.Vector3()
+        );
+
+
+      const center =
+        box.getCenter(
+          new THREE.Vector3()
+        );
+
+
+      // ---------------------------------------------------
+      // Centraliza o modelo
+      // ---------------------------------------------------
+
+      object.position.x -=
+        center.x;
+
+      object.position.z -=
+        center.z;
+
+
+      // Coloca a base no chão
+      object.position.y -=
+        box.min.y;
+
+
+      // ---------------------------------------------------
+      // Calcula tamanho
+      // ---------------------------------------------------
+
+      const maxDimension =
+        Math.max(
+          size.x,
+          size.y,
+          size.z
+        );
+
+
+      // ---------------------------------------------------
+      // Distância adequada da câmera
+      // ---------------------------------------------------
+
+      const distance =
+        maxDimension * 2.5;
+
+
+      camera.position.set(
+        distance * 0.65,
+        distance * 0.45,
+        distance
+      );
+
+
+      controls.target.set(
+        0,
+        size.y * 0.48,
+        0
+      );
+
+
+      controls.update();
+
+    }
+
+
+    // =====================================================
+    // CARREGAMENTO DO GLB
+    // =====================================================
+
+    statusEl.textContent =
+      'Carregando Corpo Sonoro...';
+
+
+    loader.load(
+
+      './instalacao.glb',
+
+
+      // ---------------------------------------------------
+      // SUCESSO
+      // ---------------------------------------------------
+
+      function(gltf) {
+
+        console.log(
+          'GLB carregado:',
+          gltf
+        );
+
+
+        model =
+          gltf.scene;
+
+
+        // -------------------------------------------------
+        // Configura materiais e sombras
+        // -------------------------------------------------
+
+        model.traverse(
+          function(object) {
+
+            if (object.isMesh) {
+
+              object.castShadow =
+                true;
+
+              object.receiveShadow =
+                true;
+
+
+              // Corrige alguns modelos exportados
+              if (object.material) {
+
+                object.material
+                  .needsUpdate = true;
+
+              }
+
+            }
+
+          }
+        );
+
+
+        // -------------------------------------------------
+        // Adiciona à cena
+        // -------------------------------------------------
+
+        scene.add(model);
+
+
+        // -------------------------------------------------
+        // Enquadra automaticamente
+        // -------------------------------------------------
+
+        frameModel(model);
+
+
+        // -------------------------------------------------
+        // Interface
+        // -------------------------------------------------
+
+        statusEl.textContent =
+          'CORPO SONORO · modelo carregado';
+
+
+        setTimeout(
+          function() {
+
+            statusEl.classList.add(
+              'hidden'
+            );
+
+          },
+          1800
+        );
+
+      },
+
+
+      // ---------------------------------------------------
+      // PROGRESSO
+      // ---------------------------------------------------
+
+      function(xhr) {
+
+        if (xhr.total > 0) {
+
+          const percent =
+            Math.round(
+              xhr.loaded /
+              xhr.total *
+              100
+            );
+
+
+          statusEl.textContent =
+            `Carregando modelo 3D... ${percent}%`;
+
+        }
+
+      },
+
+
+      // ---------------------------------------------------
+      // ERRO
+      // ---------------------------------------------------
+
+      function(error) {
+
+        console.error(
+          'ERRO AO CARREGAR GLB:',
+          error
+        );
+
+
+        statusEl.textContent =
+          'Erro ao carregar instalacao.glb';
+
+
+        statusEl.classList.add(
+          'error'
+        );
+
+
+        // Mensagem detalhada no console
+        console.log(
+          'Verifique se instalacao.glb está na mesma pasta que index.html.'
+        );
+
+      }
+
+    );
+
+
+    // =====================================================
+    // BOTÃO CENTRALIZAR
+    // =====================================================
+
+    resetButton.addEventListener(
+      'click',
+      function() {
+
+        if (model) {
+
+          frameModel(model);
+
+        }
+
+      }
+    );
+
+
+    // =====================================================
+    // RESIZE
+    // =====================================================
+
+    window.addEventListener(
+      'resize',
+      function() {
+
+        camera.aspect =
+          window.innerWidth /
+          window.innerHeight;
+
+
+        camera.updateProjectionMatrix();
+
+
+        renderer.setSize(
+          window.innerWidth,
+          window.innerHeight
+        );
+
+      }
+    );
+
+
+    // =====================================================
+    // ANIMAÇÃO
+    // =====================================================
+
+    function animate() {
+
+      requestAnimationFrame(
+        animate
+      );
+
+
+      controls.update();
+
+
+      renderer.render(
+        scene,
+        camera
+      );
+
+    }
+
+
+    animate();
+
+
+  </script>
+
+</body>
+</html>
