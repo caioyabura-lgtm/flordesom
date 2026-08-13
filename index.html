@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Corpo Sonoro — Instalação 3D</title>
+  <title>Florada de Sons — Instalação 3D</title>
 
   <!-- =====================================================
        IMPORTMAP
@@ -185,10 +185,10 @@
        BOTÃO
        ===================================================== */
 
-    #reset {
+    #reset,
+    #gallery-button {
       position: fixed;
 
-      right: 24px;
       top: 24px;
 
       z-index: 30;
@@ -214,8 +214,70 @@
       backdrop-filter: blur(10px);
     }
 
-    #reset:hover {
+    #reset {
+      right: 24px;
+    }
+
+    #gallery-button {
+      right: 126px;
+    }
+
+    #reset:hover,
+    #gallery-button:hover {
       background: white;
+    }
+
+    #gallery {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      place-items: center;
+      padding: 28px;
+      background: rgba(12, 28, 31, 0.78);
+      backdrop-filter: blur(8px);
+    }
+
+    #gallery.open { display: grid; }
+
+    .gallery-panel {
+      position: relative;
+      width: min(1100px, 100%);
+      max-height: 100%;
+      overflow: auto;
+      padding: 48px 22px 22px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .gallery-grid img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    #gallery-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    @media (max-width: 640px) {
+      #gallery-button { right: 118px; }
+      .gallery-grid { grid-template-columns: 1fr; }
     }
 
     #credits {
@@ -248,7 +310,7 @@
   <div id="title">
 
     <h1>
-      CORPO <span>SONORO</span>
+      FLORADA DE <span>SONS</span>
     </h1>
 
     <p>
@@ -292,6 +354,24 @@
     Centralizar
   </button>
 
+  <button id="gallery-button" type="button" aria-haspopup="dialog" aria-controls="gallery">
+    Galeria
+  </button>
+
+  <div id="gallery" role="dialog" aria-modal="true" aria-label="Galeria de renders">
+    <div class="gallery-panel">
+      <button id="gallery-close" type="button" aria-label="Fechar galeria">×</button>
+      <div class="gallery-grid">
+        <img src="render.png" alt="Render da instalação Florada de Sons" />
+        <img src="render02.png" alt="Render 02 da instalação Florada de Sons" />
+        <img src="render03.png" alt="Render 03 da instalação Florada de Sons" />
+        <img src="render04.png" alt="Render 04 da instalação Florada de Sons" />
+        <img src="grade.png" alt="Grade da instalação Florada de Sons" />
+        <img src="grade2.png" alt="Grade 02 da instalação Florada de Sons" />
+      </div>
+    </div>
+  </div>
+
 
   <!-- =====================================================
        THREE.JS
@@ -319,6 +399,15 @@
 
     const resetButton =
       document.getElementById('reset');
+
+    const galleryButton =
+      document.getElementById('gallery-button');
+
+    const gallery =
+      document.getElementById('gallery');
+
+    const galleryCloseButton =
+      document.getElementById('gallery-close');
 
 
     // =====================================================
@@ -520,6 +609,34 @@
     scene.add(rimLight);
 
 
+    // Variações discretas de luz acompanham o ponto de vista da câmera.
+    const cameraOffset =
+      new THREE.Vector3();
+
+    function updateViewLighting() {
+
+      cameraOffset
+        .subVectors(camera.position, controls.target)
+        .normalize();
+
+      const horizontalAngle =
+        Math.atan2(cameraOffset.x, cameraOffset.z);
+
+      const elevation =
+        cameraOffset.y;
+
+      keyLight.intensity =
+        3.0 * (0.92 + Math.cos(horizontalAngle) * 0.08);
+
+      fillLight.intensity =
+        1.2 * (0.86 + Math.sin(horizontalAngle) * 0.12);
+
+      rimLight.intensity =
+        1.4 * (0.9 + elevation * 0.14);
+
+    }
+
+
     // =====================================================
     // CHÃO
     // =====================================================
@@ -702,8 +819,15 @@
       // Distância adequada da câmera
       // ---------------------------------------------------
 
+      // Enquadra o modelo mais de perto ao abrir a cena.
       const distance =
-        maxDimension * 2.5;
+        maxDimension * 0.75;
+
+      controls.minDistance =
+        maxDimension * 0.08;
+
+      controls.maxDistance =
+        maxDimension * 1.8;
 
 
       camera.position.set(
@@ -730,7 +854,7 @@
     // =====================================================
 
     statusEl.textContent =
-      'Carregando Corpo Sonoro...';
+      'Carregando Florada de Sons...';
 
 
     loader.load(
@@ -803,7 +927,7 @@
         // -------------------------------------------------
 
         statusEl.textContent =
-          'CORPO SONORO · modelo carregado';
+          'FLORADA DE SONS · modelo carregado';
 
 
         setTimeout(
@@ -892,6 +1016,39 @@
       }
     );
 
+    galleryButton.addEventListener(
+      'click',
+      function() {
+        gallery.classList.add('open');
+        galleryCloseButton.focus();
+      }
+    );
+
+    function closeGallery() {
+      gallery.classList.remove('open');
+      galleryButton.focus();
+    }
+
+    galleryCloseButton.addEventListener('click', closeGallery);
+
+    gallery.addEventListener(
+      'click',
+      function(event) {
+        if (event.target === gallery) {
+          closeGallery();
+        }
+      }
+    );
+
+    window.addEventListener(
+      'keydown',
+      function(event) {
+        if (event.key === 'Escape' && gallery.classList.contains('open')) {
+          closeGallery();
+        }
+      }
+    );
+
 
     // =====================================================
     // RESIZE
@@ -930,6 +1087,8 @@
 
 
       controls.update();
+
+      updateViewLighting();
 
 
       renderer.render(
