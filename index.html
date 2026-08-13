@@ -294,9 +294,74 @@
       line-height: 1;
     }
 
+    /* Em telas estreitas, os botões deixam de depender de posições
+       horizontais fixas para não se sobreporem. */
     @media (max-width: 640px) {
-      #gallery-button { right: 118px; }
-      #proposal-button { right: 205px; }
+      #title {
+        top: calc(16px + env(safe-area-inset-top));
+        left: 16px;
+        right: 16px;
+      }
+
+      #title h1 {
+        font-size: clamp(26px, 9vw, 36px);
+        letter-spacing: 0.05em;
+      }
+
+      #title p {
+        font-size: 10px;
+        line-height: 1.4;
+        letter-spacing: 0.16em;
+      }
+
+      #reset,
+      #gallery-button,
+      #proposal-button {
+        left: 16px;
+        right: 16px;
+        width: auto;
+        min-height: 40px;
+        padding: 10px 14px;
+        text-align: center;
+      }
+
+      #proposal-button {
+        top: calc(92px + env(safe-area-inset-top));
+      }
+
+      #gallery-button {
+        top: calc(140px + env(safe-area-inset-top));
+      }
+
+      #reset {
+        top: calc(188px + env(safe-area-inset-top));
+      }
+
+      #controls {
+        right: auto;
+        left: 50%;
+        bottom: calc(92px + env(safe-area-inset-bottom));
+        width: max-content;
+        max-width: calc(100% - 32px);
+        padding: 8px 10px;
+        transform: translateX(-50%);
+        text-align: center;
+        font-size: 10px;
+      }
+
+      #status {
+        bottom: calc(140px + env(safe-area-inset-bottom));
+        max-width: calc(100% - 32px);
+        padding: 9px 14px;
+        text-align: center;
+      }
+
+      .gallery-panel {
+        width: 100%;
+        max-height: 100%;
+        padding: 44px 14px 14px;
+      }
+
       .gallery-grid { grid-template-columns: 1fr; }
     }
 
@@ -321,6 +386,18 @@
       color: inherit;
       text-decoration: underline;
       text-underline-offset: 2px;
+    }
+
+    /* Declarado após a regra base de créditos para preservar o ajuste móvel. */
+    @media (max-width: 640px) {
+      #credits {
+        left: 16px;
+        right: 16px;
+        bottom: calc(14px + env(safe-area-inset-bottom));
+        font-size: 10px;
+        line-height: 1.45;
+        letter-spacing: 0.06em;
+      }
     }
 
   </style>
